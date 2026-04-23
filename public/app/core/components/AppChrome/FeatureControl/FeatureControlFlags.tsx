@@ -1,6 +1,6 @@
-import { css } from '@emotion/css';
+import { css, cx } from '@emotion/css';
 import { ClientProviderEvents } from '@openfeature/web-sdk';
-import { useEffect, useState } from 'react';
+import { type PointerEventHandler, useEffect, useState } from 'react';
 
 import type { GrafanaTheme2 } from '@grafana/data';
 import { Trans } from '@grafana/i18n';
@@ -14,7 +14,12 @@ const compare = new Intl.Collator('en', { sensitivity: 'base', numeric: true }).
 
 type Flag = NonNullable<FeatureControlFlagProps['flag']>;
 
-export const FeatureControlFlags = () => {
+type FeatureControlFlagsProps = {
+  className?: string;
+  onPointerDown?: PointerEventHandler<HTMLDivElement>;
+};
+
+export const FeatureControlFlags = ({ className, onPointerDown }: FeatureControlFlagsProps) => {
   const { setIsOpen, setIsAccessible } = useFeatureControlContext();
   const [flags, setFlags] = useState<Flag[]>([]);
   const styles = useStyles2(getStyles);
@@ -36,18 +41,20 @@ export const FeatureControlFlags = () => {
   }, []);
 
   return (
-    <Card noMargin className={styles.card}>
-      <Stack direction="row" alignItems="center">
-        <Icon name="flask" size="xl" />
-        <Text variant="h4">
-          <Trans i18nKey="feature-control.title">Feature control</Trans>
+    <Card noMargin className={cx(styles.card, className)} onPointerDown={onPointerDown}>
+      <div className={styles.header}>
+        <Stack direction="row" alignItems="center">
+          <Icon name="flask" size="xl" />
+          <Text variant="h4">
+            <Trans i18nKey="feature-control.title">Feature control</Trans>
+          </Text>
+        </Stack>
+        <Text variant="body" color="secondary">
+          <Trans i18nKey="feature-control.description">
+            Override frontend feature flags locally for testing and development purposes.
+          </Trans>
         </Text>
-      </Stack>
-      <Text variant="body" color="secondary">
-        <Trans i18nKey="feature-control.description">
-          Override frontend feature flags locally for testing and development purposes.
-        </Trans>
-      </Text>
+      </div>
 
       <div className={styles.list}>
         {flags.map((flag) => (
@@ -83,9 +90,14 @@ const getStyles = (theme: GrafanaTheme2) => ({
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(1),
-    width: theme.spacing(50),
     boxShadow: theme.shadows.z2,
     border: `1px solid ${theme.colors.border.medium}`,
+  }),
+  header: css({
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(1),
+    pointerEvents: 'none',
   }),
   list: css({
     display: 'flex',
