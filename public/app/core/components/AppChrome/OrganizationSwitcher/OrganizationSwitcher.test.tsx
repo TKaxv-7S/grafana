@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { TestProvider } from 'test/helpers/TestProvider';
 
 import { OrgRole } from '@grafana/data';
+import { config } from '@grafana/runtime';
 import { ContextSrv, setContextSrv } from 'app/core/services/context_srv';
 import { getUserOrganizations, setUserOrganization } from 'app/features/org/state/actions';
 import { type StoreState } from 'app/types/store';
@@ -132,7 +133,21 @@ describe('OrganisationSwitcher', () => {
       await userEvent.click(screen.getByRole('combobox', { name: 'Change organization' }));
       await userEvent.click(await screen.findByText('test2'));
 
-      expect(mockAssign).toHaveBeenCalledWith('/?orgId=2');
+      expect(mockAssign).toHaveBeenCalledWith(`${config.appSubUrl}/?orgId=2`);
+    });
+
+    it('should prefix window.location.assign URL with appSubUrl when Grafana is served from a sub-path', async () => {
+      const originalSubUrl = config.appSubUrl;
+      config.appSubUrl = '/grafana';
+
+      renderWithProvider({ initialState: twoOrgInitialState });
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Change organization' }));
+      await userEvent.click(await screen.findByText('test2'));
+
+      expect(mockAssign).toHaveBeenCalledWith('/grafana/?orgId=2');
+
+      config.appSubUrl = originalSubUrl;
     });
 
     it('should not navigate if dispatch rejects (API failure)', async () => {
@@ -164,7 +179,7 @@ describe('OrganisationSwitcher', () => {
       await userEvent.click(await screen.findByText('test2'));
 
       expect(mockAssign).toHaveBeenCalledTimes(1);
-      expect(mockAssign).toHaveBeenCalledWith('/?orgId=2');
+      expect(mockAssign).toHaveBeenCalledWith(`${config.appSubUrl}/?orgId=2`);
     });
 
     it('should await dispatch before navigating so POST completes before page reload', async () => {

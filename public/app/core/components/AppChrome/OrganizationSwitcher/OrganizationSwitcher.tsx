@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { type SelectableValue } from '@grafana/data';
+import { config } from '@grafana/runtime';
 import { Text } from '@grafana/ui';
 import { contextSrv } from 'app/core/services/context_srv';
 import { getUserOrganizations, setUserOrganization } from 'app/features/org/state/actions';
@@ -27,7 +28,7 @@ export function OrganizationSwitcher() {
       // backendSrv already displays an error toast; do not navigate on failure.
       return;
     }
-    window.location.assign(`/?orgId=${option.value.orgId}`);
+    window.location.assign(`${config.appSubUrl}/?orgId=${option.value.orgId}`);
   };
   useEffect(() => {
     if (
