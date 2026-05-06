@@ -1,6 +1,7 @@
 package operators
 
 import (
+	"github.com/grafana/grafana/pkg/operators/example"
 	"github.com/grafana/grafana/pkg/operators/provisioning"
 	"github.com/grafana/grafana/pkg/server"
 )
@@ -28,4 +29,7 @@ func init() {
 		Description: "Pick and execute provisioning jobs using lease-based claiming",
 		RunFunc:     provisioning.RunJobQueueController,
 	})
+
+	// Example operator
+	server.RegisterOperator(example.NewOperator())
 }
