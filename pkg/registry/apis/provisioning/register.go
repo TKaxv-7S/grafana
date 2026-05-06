@@ -122,16 +122,16 @@ type APIBuilder struct {
 	resourceLister         resources.ResourceLister
 	folderUIDByPathFactory resources.FolderUIDByPathFactory
 	unified                resource.ResourceClient
-	repoFactory       repository.Factory
-	connectionFactory connection.Factory
-	client            client.ProvisioningV0alpha1Interface
-	access            auth.AccessChecker
-	accessWithAdmin   auth.AccessChecker
-	accessWithEditor  auth.AccessChecker
-	accessWithViewer  auth.AccessChecker
-	statusPatcher     *appcontroller.RepositoryStatusPatcher
-	healthChecker     *controller.RepositoryHealthChecker
-	admissionHandler  *appadmission.Handler
+	repoFactory            repository.Factory
+	connectionFactory      connection.Factory
+	client                 client.ProvisioningV0alpha1Interface
+	access                 auth.AccessChecker
+	accessWithAdmin        auth.AccessChecker
+	accessWithEditor       auth.AccessChecker
+	accessWithViewer       auth.AccessChecker
+	statusPatcher          *appcontroller.RepositoryStatusPatcher
+	healthChecker          *controller.RepositoryHealthChecker
+	admissionHandler       *appadmission.Handler
 	// Extras provides additional functionality to the API.
 	extras       []Extra
 	extraWorkers []jobs.Worker

@@ -236,42 +236,12 @@ func (r *parser) Parse(ctx context.Context, info *repository.FileInfo) (parsed *
 		obj.SetName(obj.GetGenerateName() + util.GenerateShortUID())
 	}
 
-	// Calculate folder identifier from the file path.
-	// Resolution order matches GetFolderID:
-	//   1. _folder.json on the configured ref (when folder metadata is enabled)
-	//   2. Existing managed folder UID in unified storage at this path
-	//   3. Path-derived hash via ParseFolder
-	// Step 2 is what makes saves into UI-created subfolders (which lack
-	// _folder.json) authorize correctly: without it the parent annotation is
-	// a phantom hash UID that RBAC inheritance walks can't reach.
 	if info.Path != "" {
-		dirPath := safepath.Dir(info.Path)
-		// _folder.json represents the directory it lives in, so its parent is one level above.
-		if r.folderMetadataEnabled && IsFolderMetadataFile(info.Path) {
-			dirPath = safepath.Dir(dirPath)
+		folderID, err := r.resolveParentFolderID(ctx, info)
+		if err != nil {
+			return nil, err
 		}
-		if dirPath != "" {
-			folderID := ParseFolder(dirPath, r.repo.Name).ID
-			resolved := false
-			if r.folderMetadataEnabled && r.reader != nil {
-				if meta, _, err := ReadFolderMetadata(ctx, r.reader, dirPath, info.Ref); err == nil && meta.Name != "" {
-					folderID = meta.Name
-					resolved = true
-				}
-			}
-			if !resolved && r.folderUIDByPath != nil {
-				uid, ok, err := r.folderUIDByPath.LookupFolderUID(ctx, dirPath)
-				if err != nil {
-					return nil, fmt.Errorf("lookup existing folder for %s: %w", dirPath, err)
-				}
-				if ok && uid != "" {
-					folderID = uid
-				}
-			}
-			parsed.Meta.SetFolder(folderID)
-		} else {
-			parsed.Meta.SetFolder(RootFolder(r.config))
-		}
+		parsed.Meta.SetFolder(folderID)
 	}
 	obj.SetUID("")             // clear identifiers
 	obj.SetResourceVersion("") // clear identifiers
@@ -288,6 +258,44 @@ func (r *parser) Parse(ctx context.Context, info *repository.FileInfo) (parsed *
 	}
 
 	return parsed, nil
+}
+
+// resolveParentFolderID returns the UID that should be set on the parsed
+// resource's grafana.app/folder annotation. The order matches GetFolderID:
+//   1. _folder.json on the configured ref (when folder metadata is enabled)
+//   2. Existing managed folder UID in unified storage at this path
+//   3. Path-derived hash via ParseFolder
+//
+// Step 2 is what makes saves into UI-created subfolders (which lack
+// _folder.json) authorize correctly: without it the parent annotation is a
+// phantom hash UID that RBAC inheritance walks can't reach.
+func (r *parser) resolveParentFolderID(ctx context.Context, info *repository.FileInfo) (string, error) {
+	dirPath := safepath.Dir(info.Path)
+	// _folder.json represents the directory it lives in, so its parent is one level above.
+	if r.folderMetadataEnabled && IsFolderMetadataFile(info.Path) {
+		dirPath = safepath.Dir(dirPath)
+	}
+	if dirPath == "" {
+		return RootFolder(r.config), nil
+	}
+
+	if r.folderMetadataEnabled && r.reader != nil {
+		if meta, _, err := ReadFolderMetadata(ctx, r.reader, dirPath, info.Ref); err == nil && meta.Name != "" {
+			return meta.Name, nil
+		}
+	}
+
+	if r.folderUIDByPath != nil {
+		uid, ok, err := r.folderUIDByPath.LookupFolderUID(ctx, dirPath)
+		if err != nil {
+			return "", fmt.Errorf("lookup existing folder for %s: %w", dirPath, err)
+		}
+		if ok && uid != "" {
+			return uid, nil
+		}
+	}
+
+	return ParseFolder(dirPath, r.repo.Name).ID, nil
 }
 
 // SameIdentity reports whether f and other refer to the same Kubernetes
