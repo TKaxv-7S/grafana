@@ -51,10 +51,41 @@ describe('FeatureControlFlags', () => {
 
     renderComponent();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Dismiss feature control' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: /Remove UI and toolbar button/ }));
 
     expect(setIsOpen).toHaveBeenCalledWith(false);
     expect(setIsAccessible).toHaveBeenCalledWith(false);
     expect(window.localStorage.getItem(getStorageKey('alpha'))).toBe('true');
+  });
+
+  it('updates position when menu item is clicked', async () => {
+    getLocalStorageProvider().setFlags({ alpha: true });
+
+    renderComponent();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Top left' }));
+
+    expect(setCorner).toHaveBeenCalledWith('top-left');
+  });
+
+  it('changes position between different corners', async () => {
+    getLocalStorageProvider().setFlags({ alpha: true });
+
+    renderComponent();
+
+    const corners = [
+      { name: 'Top right', value: 'top-right' },
+      { name: 'Bottom left', value: 'bottom-left' },
+      { name: 'Bottom right', value: 'bottom-right' },
+    ];
+
+    for (const corner of corners) {
+      jest.clearAllMocks();
+      await userEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+      await userEvent.click(screen.getByRole('menuitem', { name: corner.name }));
+      expect(setCorner).toHaveBeenCalledWith(corner.value);
+    }
   });
 });

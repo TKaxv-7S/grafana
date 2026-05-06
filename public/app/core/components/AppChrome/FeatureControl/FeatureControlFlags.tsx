@@ -1,14 +1,14 @@
 import { css, cx } from '@emotion/css';
 import { ClientProviderEvents } from '@openfeature/web-sdk';
-import { type PointerEventHandler, useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 
-import type { GrafanaTheme2 } from '@grafana/data';
-import { Trans } from '@grafana/i18n';
+import type { GrafanaTheme2, IconName } from '@grafana/data';
+import { t, Trans } from '@grafana/i18n';
 import { getLocalStorageProvider } from '@grafana/runtime/internal';
-import { Button, Card, Icon, Stack, Text, useStyles2 } from '@grafana/ui';
+import { Card, Dropdown, Icon, IconButton, Menu, MenuGroup, MenuItem, Stack, Text, useStyles2 } from '@grafana/ui';
 
 import { FeatureControlFlag, type FeatureControlFlagProps } from './FeatureControlFlag';
-import { useFeatureControlContext } from './FeatureControlProvider';
+import { type FeatureControlCorner, useFeatureControlContext } from './FeatureControlProvider';
 
 const compare = new Intl.Collator('en', { sensitivity: 'base', numeric: true }).compare;
 
@@ -16,11 +16,11 @@ type Flag = NonNullable<FeatureControlFlagProps['flag']>;
 
 type FeatureControlFlagsProps = {
   className?: string;
-  onPointerDown?: PointerEventHandler<HTMLDivElement>;
+  style?: CSSProperties;
 };
 
-export const FeatureControlFlags = ({ className, onPointerDown }: FeatureControlFlagsProps) => {
-  const { setIsOpen, setIsAccessible } = useFeatureControlContext();
+export const FeatureControlFlags = ({ className, style }: FeatureControlFlagsProps) => {
+  const { setIsOpen, setIsAccessible, corner, setCorner } = useFeatureControlContext();
   const [flags, setFlags] = useState<Flag[]>([]);
   const styles = useStyles2(getStyles);
 
@@ -40,14 +40,94 @@ export const FeatureControlFlags = ({ className, onPointerDown }: FeatureControl
     };
   }, []);
 
+  const menu = useMemo(() => {
+    const corners: Array<{ value: FeatureControlCorner; label: string; icon: IconName; transform: string }> = [
+      {
+        value: 'top-left',
+        label: t('feature-control.position.top-left', 'Top left'),
+        icon: 'arrow-up',
+        transform: 'rotate(-45deg)',
+      },
+      {
+        value: 'top-right',
+        label: t('feature-control.position.top-right', 'Top right'),
+        icon: 'arrow-up',
+        transform: 'rotate(45deg)',
+      },
+      {
+        value: 'bottom-left',
+        label: t('feature-control.position.bottom-left', 'Bottom left'),
+        icon: 'arrow-down',
+        transform: 'rotate(45deg)',
+      },
+      {
+        value: 'bottom-right',
+        label: t('feature-control.position.bottom-right', 'Bottom right'),
+        icon: 'arrow-down',
+        transform: 'rotate(-45deg)',
+      },
+    ];
+
+    return (
+      <Menu>
+        <MenuGroup label={t('feature-control.position.header', 'Position')}>
+          {corners.map((item) => (
+            <MenuItem
+              key={item.value}
+              active={item.value === corner}
+              ariaChecked={item.value === corner}
+              onClick={() => setCorner(item.value)}
+              label=""
+              component={() => (
+                <Stack direction="row" alignItems="center">
+                  <Icon name={item.icon} style={{ transform: item.transform }} />
+                  <Text color="primary">{item.label}</Text>
+                </Stack>
+              )}
+            />
+          ))}
+        </MenuGroup>
+
+        <MenuGroup label={t('feature-control.dismiss.header', 'Dismiss')}>
+          <MenuItem
+            onClick={() => {
+              setIsOpen(false);
+              setIsAccessible(false);
+            }}
+            destructive
+            icon="times"
+            label={t('feature-control.dismiss.label', 'Remove UI and toolbar button')}
+            component={() => (
+              <Text color="secondary" variant="bodySmall" textAlignment="start">
+                <Trans i18nKey="feature-control.dismiss.tooltip" values={{ param: '?featureControl=true' }}>
+                  Any feature flag overrides defined will remain active.
+                  <br /> Use <code>{'{{ param }}'}</code> in the URL to enable UI again.
+                </Trans>
+              </Text>
+            )}
+          />
+        </MenuGroup>
+      </Menu>
+    );
+  }, [corner, setCorner, setIsOpen, setIsAccessible]);
+
   return (
-    <Card noMargin className={cx(styles.card, className)} onPointerDown={onPointerDown}>
+    <Card noMargin className={cx(styles.card, className)} style={style}>
       <div className={styles.header}>
         <Stack direction="row" alignItems="center">
           <Icon name="flask" size="xl" />
           <Text variant="h4">
             <Trans i18nKey="feature-control.title">Feature control</Trans>
           </Text>
+
+          <Dropdown overlay={menu} placement="bottom-start">
+            <IconButton
+              tooltip={t('feature-control.menu', 'Open menu')}
+              variant="secondary"
+              name="bars"
+              className={styles.menu}
+            />
+          </Dropdown>
         </Stack>
         <Text variant="body" color="secondary">
           <Trans i18nKey="feature-control.description">
@@ -62,25 +142,6 @@ export const FeatureControlFlags = ({ className, onPointerDown }: FeatureControl
         ))}
         <FeatureControlFlag />
       </div>
-
-      <Button
-        size="sm"
-        variant="destructive"
-        fill="outline"
-        fullWidth
-        onClick={() => {
-          setIsOpen(false);
-          setIsAccessible(false);
-        }}
-        tooltip={
-          <Trans i18nKey="feature-control.dismiss-tooltip" values={{ param: '?featureControl=true' }}>
-            Removes the feature control UI and toolbar button. Use <code>{'{{ param }}'}</code> in the URL to enable it
-            again. Any overrides defined will remain active.
-          </Trans>
-        }
-      >
-        <Trans i18nKey="feature-control.dismiss">Dismiss feature control</Trans>
-      </Button>
     </Card>
   );
 };
@@ -97,7 +158,9 @@ const getStyles = (theme: GrafanaTheme2) => ({
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(1),
-    pointerEvents: 'none',
+  }),
+  menu: css({
+    marginLeft: 'auto',
   }),
   list: css({
     display: 'flex',

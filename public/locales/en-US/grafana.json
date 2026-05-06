@@ -9124,13 +9124,24 @@
     },
     "delete-flag": "Delete",
     "description": "Override frontend feature flags locally for testing and development purposes.",
-    "dismiss": "Dismiss feature control",
-    "dismiss-tooltip": "Removes the feature control UI and toolbar button. Use <1>{{ param }}</1> in the URL to enable it again. Any overrides defined will remain active.",
+    "dismiss": {
+      "header": "Dismiss",
+      "label": "Remove UI and toolbar button",
+      "tooltip": "Any feature flag overrides defined will remain active.<br/> Use <3>{{ param }}</3> in the URL to enable UI again."
+    },
     "flag-key": "Flag key",
     "flag-key-placeholder": "my-component.my-flag",
     "flag-type": "Flag type",
     "flag-value": "Flag value",
+    "menu": "Open menu",
     "new-flag": "new-flag-override",
+    "position": {
+      "bottom-left": "Bottom left",
+      "bottom-right": "Bottom right",
+      "header": "Position",
+      "top-left": "Top left",
+      "top-right": "Top right"
+    },
     "save-flag": "Save",
     "title": "Feature control"
   },
