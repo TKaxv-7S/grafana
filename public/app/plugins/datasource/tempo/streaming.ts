@@ -11,6 +11,7 @@ import {
   type DataSourceInstanceSettings,
   FieldCache,
   FieldType,
+  isLiveChannelStatusEvent,
   LiveChannelScope,
   LoadingState,
   type MutableDataFrame,
@@ -72,6 +73,10 @@ export function doTempoSearchStreaming(
     )
     .pipe(
       map((evt) => {
+        if (isLiveChannelStatusEvent(evt) && evt.error) {
+          throw new Error(getLiveChannelErrorMessage(evt.error));
+        }
+
         if ('message' in evt && evt?.message) {
           const currentTime = performance.now();
           const elapsedTime = currentTime - requestTime;
@@ -109,6 +114,22 @@ export function doTempoSearchStreaming(
         };
       })
     );
+}
+
+function getLiveChannelErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+
+  return 'Live channel error';
 }
 
 export function doTempoMetricsStreaming(

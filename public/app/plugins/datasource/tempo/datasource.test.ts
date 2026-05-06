@@ -1,4 +1,4 @@
-import { lastValueFrom, type Observable, of } from 'rxjs';
+import { lastValueFrom, type Observable, of, throwError } from 'rxjs';
 
 import {
   type DataFrame,
@@ -117,6 +117,19 @@ describe('Tempo data source', () => {
       const ds = new TempoDatasource(defaultSettings, templateSrv);
       await lastValueFrom(ds.query(traceqlSearchQuery as DataQueryRequest<TempoQuery>));
       expect(handleStreamingQuery).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to HTTP TraceQL search when streaming fails', async () => {
+      config.liveEnabled = true;
+      const ds = new TempoDatasource(defaultSettings, templateSrv);
+      const fallbackResponse = { data: [], state: LoadingState.Done };
+      jest.spyOn(ds, 'handleStreamingQuery').mockReturnValue(throwError(() => new Error('expired')));
+      const handleTraceQlQuery = jest.spyOn(ds, 'handleTraceQlQuery').mockReturnValue(of(fallbackResponse));
+
+      const response = await lastValueFrom(ds.query(traceqlQuery as DataQueryRequest<TempoQuery>));
+
+      expect(handleTraceQlQuery).toHaveBeenCalledTimes(1);
+      expect(response).toBe(fallbackResponse);
     });
   });
 

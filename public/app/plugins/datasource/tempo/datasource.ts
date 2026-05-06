@@ -413,7 +413,9 @@ export class TempoDatasource extends DataSourceWithBackend<TempoQuery, TempoJson
             });
 
             if (useStreaming) {
-              return this.handleStreamingQuery(options, targets.traceql, queryValue);
+              return this.handleStreamingQuery(options, targets.traceql, queryValue).pipe(
+                catchError(() => this.handleTraceQlQuery(options, targets))
+              );
             }
             subQueries.push(this.handleTraceQlQuery(options, targets));
           }
@@ -453,7 +455,11 @@ export class TempoDatasource extends DataSourceWithBackend<TempoQuery, TempoJson
           });
 
           if (this.isStreamingSearchEnabled()) {
-            subQueries.push(this.handleStreamingQuery(options, traceqlSearchTargets, queryFromFilters));
+            subQueries.push(
+              this.handleStreamingQuery(options, traceqlSearchTargets, queryFromFilters).pipe(
+                catchError(() => this.handleTraceQlQuery(options, targets))
+              )
+            );
           } else {
             subQueries.push(this.handleTraceQlQuery(options, targets));
           }
@@ -752,6 +758,7 @@ export class TempoDatasource extends DataSourceWithBackend<TempoQuery, TempoJson
     }
 
     const startTime = performance.now();
+    let success = true;
     return merge(
       ...targets.map((target) =>
         doTempoSearchStreaming(
@@ -768,20 +775,23 @@ export class TempoDatasource extends DataSourceWithBackend<TempoQuery, TempoJson
           streaming: true,
           latencyMs: Math.round(performance.now() - startTime), // rounded to nearest millisecond
           query: query ?? '',
-          error: getErrorMessage(error?.data?.message),
+          error: getErrorMessage(error?.data?.message ?? error?.message),
           statusCode: error.status,
           statusText: error.statusText,
         });
+        success = false;
         // Re-throw the error to maintain the error chain
         throw error;
       }),
       finalize(() => {
-        reportTempoQueryMetrics('grafana_traces_traceql_response', options, {
-          success: true,
-          streaming: true,
-          query: query ?? '',
-          latencyMs: Math.round(performance.now() - startTime), // rounded to nearest millisecond
-        });
+        if (success) {
+          reportTempoQueryMetrics('grafana_traces_traceql_response', options, {
+            success: true,
+            streaming: true,
+            query: query ?? '',
+            latencyMs: Math.round(performance.now() - startTime), // rounded to nearest millisecond
+          });
+        }
       })
     );
   }
