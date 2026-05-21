@@ -195,6 +195,20 @@ func schema_pkg_apis_provisioning_v0alpha1_CommitOptions(ref common.ReferenceCal
 							Format:      "",
 						},
 					},
+					"authorName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name used as the commit author and committer. Required for the GPG signing key's UID to match the commit, which GitHub needs to mark commits as Verified. When empty, defaults to \"Grafana\".",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"authorEmail": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Email used as the commit author and committer. Must match the email on the GPG signing key's UID and a verified email on the GitHub account where the matching public key is registered. When empty, defaults to \"noreply@grafana.com\".",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -3178,6 +3192,13 @@ func schema_pkg_apis_provisioning_v0alpha1_SecureValues(ref common.ReferenceCall
 					"webhookSecret": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Some webhooks (including github) require a secret key value",
+							Default:     map[string]interface{}{},
+							Ref:         ref(commonv0alpha1.InlineSecureValue{}.OpenAPIModelName()),
+						},
+					},
+					"gpgSigningKey": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Armored OpenPGP private key used to sign commits the repository writes back. When unset, commits are unsigned.",
 							Default:     map[string]interface{}{},
 							Ref:         ref(commonv0alpha1.InlineSecureValue{}.OpenAPIModelName()),
 						},
