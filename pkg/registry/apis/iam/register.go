@@ -276,6 +276,13 @@ func NewAPIService(
 					return authorizer.DecisionAllow, "", nil
 				}
 
+				if a.GetResource() == iamv0.TeamResourceInfo.GetName() {
+					if user.GetIdentityType() != types.TypeAccessPolicy {
+						return authorizer.DecisionDeny, "only access policy identities have access for now", nil
+					}
+					return resourceAuthorizer.Authorize(ctx, a)
+				}
+
 				if a.GetResource() == "users" {
 					if user.GetIdentityType() != types.TypeAccessPolicy {
 						return authorizer.DecisionDeny, "only access policy identities have access for now", nil
@@ -515,7 +522,8 @@ func (b *IdentityAccessManagementAPIBuilder) UpdateTeamsAPIGroup(opts builder.AP
 	storage[teamResource.StoragePath("addmember")] = team.NewTeamAddMemberREST(teamStorage, b.tracing)
 	storage[teamResource.StoragePath("removemember")] = team.NewTeamRemoveMemberREST(teamStorage, b.tracing)
 
-	if enableExternalGroupMappingsApi && b.teamGroupsHandler != nil {
+	if b.teamGroupsHandler != nil {
+		b.teamGroupsHandler.SetTeamGetter(b.teamGetter)
 		storage[teamResource.StoragePath("groups")] = b.teamGroupsHandler
 	}
 
