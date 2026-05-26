@@ -1959,6 +1959,10 @@ export type BitbucketRepositoryConfig = {
   url?: string;
 };
 export type CommitOptions = {
+  /** Email used as the commit author and committer. Must match the email on the GPG signing key's UID and a verified email on the GitHub account where the matching public key is registered. When empty, defaults to "noreply@grafana.com". */
+  authorEmail?: string;
+  /** Name used as the commit author and committer. Required for the GPG signing key's UID to match the commit, which GitHub needs to mark commits as Verified. When empty, defaults to "Grafana". */
+  authorName?: string;
   /** Template for commit messages produced by single-resource UI operations (dashboard save/delete/move, folder create/rename/delete). Bulk operations and sync jobs are out of scope and build their own messages. Supports variables: {{action}}, {{resourceKind}}, {{resourceID}}, {{title}}. When empty, a built-in default is used (e.g. "Save dashboard: <title>"). */
   singleResourceMessageTemplate?: string;
 };
